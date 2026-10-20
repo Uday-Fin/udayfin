@@ -749,7 +749,9 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
       el("h2", {}, babeFace(), "Babe", el("span", { class: "small muted", style: "font-weight:500;font-family:var(--body)" }, "your money assistant")),
       el("div", { class: "small muted" }, "Advice from your own numbers: which debt to pay first, where to cut, how to invest."),
       el("div", { class: "chips" }, AI_STARTERS.slice(0, 3).map(q => el("button", { type: "button", onclick: () => { go("advisor"); askAI(q); } }, q))),
-      el("button", { class: "btn", type: "button", onclick: () => go("advisor") }, "Talk to Babe"));
+      el("div", { class: "two" },
+        el("button", { class: "btn", type: "button", onclick: () => go("advisor") }, "Talk to Babe"),
+        el("button", { class: "btn soft", type: "button", onclick: () => askInClaude("") }, "✦ Ask in Claude")));
     const h = new Date().getHours();
     const hello = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Good night";
     const who = (D.settings.userName || "").trim();
@@ -1664,10 +1666,14 @@ For debts, explain the order you'd pay them and why (high interest like credit c
       aiBusy ? el("button", { class: "btn soft", type: "button", onclick: () => aiCtl?.abort() }, "Stop") : el("button", { class: "btn", type: "submit" }, "Ask"));
     const starters = el("div", { class: "chips" }, AI_STARTERS.map(q => el("button", { type: "button", disabled: aiBusy, onclick: () => askAI(q) }, q)));
     const copy = el("button", { class: "btn soft", type: "button", onclick: () => {
-      const txt = `${AI_RULES}\n\nMy money right now:\n${aiSnapshot()}\n\nMy question: `;
+      const txt = summaryPrompt("");
       navigator.clipboard?.writeText(txt).then(() => toast("Copied. Paste it into the Claude app and add your question."), () => toast("Couldn't copy here"));
     } }, "Copy my summary");
-    return [topbar("Babe", talkMode ? "Voice conversation" : "Your money assistant"), voicePanel(), starters, chat, form,
+    const inClaude = el("section", { class: "card" },
+      el("h2", {}, "Ask in Claude (free)"),
+      el("div", { class: "small muted" }, "Opens a new Claude chat called \"UdayFin summary\" with your money summary filled in. It uses your own Claude account, so there's no API key and no extra cost. Type a question above first, or add it in Claude."),
+      el("button", { class: "btn block", type: "button", onclick: () => askInClaude(($("#aiAsk")?.value || "").trim()) }, "✦ Ask in Claude"));
+    return [topbar("Babe", talkMode ? "Voice conversation" : "Your money assistant"), voicePanel(), starters, chat, form, inClaude,
       el("section", { class: "card" },
         el("div", { class: "note" }, "To answer, Babe sends a summary of your balances, debts, spending and goal to Claude (made by Anthropic). Answers are general guidance, not licensed financial advice."),
         el("div", { class: "two" }, copy, el("button", { class: "btn soft", type: "button", disabled: aiBusy || !aiTurns.length, onclick: () => { aiTurns = []; render(); } }, "New chat")))];
@@ -1805,6 +1811,18 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   const BABE_SVG = '<svg viewBox="0 0 40 40" class="babe" aria-hidden="true"><defs><radialGradient id="bg1" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#bfe0ff"/><stop offset=".45" stop-color="#2f6be0"/><stop offset="1" stop-color="#20c98a"/></radialGradient></defs><circle cx="20" cy="20" r="19" fill="url(#bg1)"/><circle cx="14.5" cy="18" r="2.4" fill="#fff"/><circle cx="25.5" cy="18" r="2.4" fill="#fff"/><path d="M14 24.5q6 5 12 0" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="10.5" cy="23" r="2" fill="#ff9fb4" opacity=".55"/><circle cx="29.5" cy="23" r="2" fill="#ff9fb4" opacity=".55"/><path d="M31 6l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z" fill="#fff"/></svg>';
   const babeFace = () => Object.assign(el("span", { style: "display:inline-grid" }), { innerHTML: BABE_SVG });
   const aiRow = bubble => el("div", { class: "babe-row" }, babeFace(), bubble);
+
+  // A fresh claude.ai chat, titled by its first line, with the summary filled in
+  function summaryPrompt(q) {
+    return `UdayFin summary\n\n${AI_RULES}\n\nMy money right now:\n${aiSnapshot()}\n\nMy question: ${q}`;
+  }
+  function askInClaude(q) {
+    const text = summaryPrompt(q || "");
+    try { navigator.clipboard?.writeText(text).catch(() => {}); } catch {}
+    const a = el("a", { href: "https://claude.ai/new?q=" + encodeURIComponent(text), target: "_blank", rel: "noopener" });
+    document.body.append(a); a.click(); a.remove();
+    toast(q ? "Opening Claude with your question…" : "Opening Claude. Type your question and send.");
+  }
 
   // ---------- Voice: speak to Babe, hear Babe ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
