@@ -466,9 +466,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     return {
       v: 1,
       settings: { name: "UdayFin", currency: "NPR", opening: 0 },
-      txns: [
-        { id: uid(), type: "in", amount: 2500000, cat: "Other", note: "Money coming in", date: "2026-10-21" }
-      ],
+      txns: [],
       debts: [
         { id: uid(), dir: "owe", name: "Siddhartha Bank", note: "Credit card", currency: "NPR", original: 2409000, due: "", payments: [] },
         { id: uid(), dir: "owe", name: "Parents", note: "", currency: "NPR", original: 2500000, due: "", payments: [] },
@@ -496,6 +494,8 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   function normalize(d) {
     d.settings = { name: "UdayFin", currency: "NPR", opening: 0, budget: 0, ...d.settings };
     d.txns ||= []; d.debts ||= []; d.savings ||= []; d.investments ||= [];
+    // The early sample "money coming tomorrow" entry is no longer wanted
+    d.txns = d.txns.filter(t => !(t.note === "Money coming in" && t.amount === 2500000 && t.date === "2026-10-21"));
     if (!Array.isArray(d.accounts)) {
       d.accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, opening: a.id === "cash" ? d.settings.opening || 0 : 0 }));
       d.settings.opening = 0;
@@ -687,9 +687,9 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
 
     const hero = el("section", { class: "hero" },
       el("div", { style: "position:relative;z-index:1" }, el("div", { class: "label" }, "Money I have"), el("div", { class: "big", "data-count": bal }, money(bal))),
-      el("div", { class: "hero-row" },
+      el("div", { class: "hero-row", style: up ? null : "grid-template-columns:1fr" },
         el("div", { class: "hero-pill" }, el("div", { class: "label" }, "I owe"), el("div", { class: "v" }, totalsText(owe))),
-        el("div", { class: "hero-pill" }, el("div", { class: "label" }, "Coming soon"), el("div", { class: "v" }, up ? money(up, undefined, "+") : "—"))),
+        up ? el("div", { class: "hero-pill" }, el("div", { class: "label" }, "Coming soon"), el("div", { class: "v" }, money(up, undefined, "+"))) : null),
       up ? el("div", { class: "hero-note" }, `After upcoming money: ${money(bal + up)}`) : null);
 
     // Money comes in at irregular times, so offer one-tap starts instead of a schedule
