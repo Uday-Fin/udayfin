@@ -465,7 +465,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   function seed() {
     return {
       v: 1,
-      settings: { name: "UdayFin", currency: "NPR", opening: 0 },
+      settings: { name: "UdayFin", currency: "NPR", opening: 0, savingsV2: true },
       // Balances as of 22 Oct 2026 (paisa)
       accounts: DEFAULT_ACCOUNTS.map(a => ({ ...a, opening: { cash: 319500, khalti: 23800, esewa: 133100, nabil: 51419 }[a.id] || 0 })),
       txns: [],
@@ -478,10 +478,12 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   }
   const DEFAULT_ACCOUNTS = [
     { id: "cash", name: "Wallet (cash)", color: "#7a5a2b" },
-    { id: "khalti", name: "Khalti", color: "#5c2d91" },
     { id: "esewa", name: "eSewa", color: "#3f9b2f" },
     { id: "nabil", name: "Nabil Bank", color: "#b3152b" },
-    { id: "siddhartha", name: "Siddhartha Bank", color: "#1c4f9c" }
+    { id: "siddhartha", name: "Siddhartha Bank", color: "#1c4f9c" },
+    // Savings: money set aside for emergencies, investing and later; not part of "Money I have"
+    { id: "khalti", name: "Khalti", color: "#5c2d91", saving: true, note: "Online savings" },
+    { id: "cashsave", name: "Cash savings", color: "#8a6d1f", saving: true, note: "Cash kept aside" }
   ];
   const ACC_COLORS = ["#0f766e", "#9a3412", "#6d28d9", "#be185d", "#1d4ed8", "#4d7c0f"];
   const THEMES = [["ocean", "Ocean", "linear-gradient(135deg,#061a3d,#1554c9 60%,#20c98a)"], ["mint", "Mint", "linear-gradient(135deg,#032a1f,#0b7a55 60%,#2f8cff)"], ["royal", "Royal", "linear-gradient(135deg,#050f33,#1a3fbf 60%,#4ad6a0)"]];
@@ -499,6 +501,12 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
       d.settings.opening = 0;
     }
     d.txns.forEach(t => { if (t.type !== "transfer" && !t.acc) t.acc = d.accounts[0]?.id || "cash"; });
+    if (!d.settings.savingsV2) {
+      const k = d.accounts.find(a => a.id === "khalti");
+      if (k) Object.assign(k, { saving: true, note: "Online savings" });
+      if (!d.accounts.some(a => a.id === "cashsave")) d.accounts.push({ id: "cashsave", name: "Cash savings", color: "#8a6d1f", saving: true, note: "Cash kept aside", opening: 0 });
+      d.settings.savingsV2 = true;
+    }
     d.settings.lastAcc ||= d.accounts[0]?.id || "cash";
     d.settings.firstUse ||= today();
     d.plan ||= { monthly: 0, method: "rate" };
@@ -575,7 +583,8 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   // "move" entries shift money between my pocket and savings/investments; they are not spending or income
   const signed = t => t.type === "transfer" ? 0 : t.type === "in" || (t.type === "move" && t.dir === "in") ? t.amount : -t.amount;
   const isUpcoming = t => t.date > today();
-  const balance = () => D.accounts.reduce((s, a) => s + (a.opening || 0), 0) + D.txns.filter(t => !isUpcoming(t)).reduce((s, t) => s + signed(t), 0);
+  const balance = () => D.accounts.filter(a => !a.saving).reduce((s, a) => s + accBal(a.id), 0);
+  const savingAccTotal = () => D.accounts.filter(a => a.saving).reduce((s, a) => s + accBal(a.id), 0);
   function accBal(id) {
     const a = D.accounts.find(x => x.id === id);
     let b = a?.opening || 0;
@@ -595,7 +604,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     if (allowNone && value === "") sel.value = "";
     return sel;
   }
-  const upcomingTotal = () => D.txns.filter(isUpcoming).reduce((s, t) => s + signed(t), 0);
+  const upcomingTotal = () => D.txns.filter(t => isUpcoming(t) && !D.accounts.find(a => a.id === t.acc)?.saving).reduce((s, t) => s + signed(t), 0);
   const paid = d => (d.payments || []).reduce((s, p) => s + p.amount, 0);
   const left = d => Math.max(0, d.original - paid(d));
   function debtTotals(dir) {
@@ -606,7 +615,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   const savedTotal = () => D.savings.reduce((s, p) => s + (p.balance || 0), 0);
   const investedValue = () => D.investments.reduce((s, i) => s + (i.value || 0), 0);
   const investedCost = () => D.investments.reduce((s, i) => s + (i.invested || 0), 0);
-  const goalProgress = () => savedTotal() + investedValue() + (D.goal.countCash ? Math.max(0, balance()) : 0);
+  const goalProgress = () => savingAccTotal() + savedTotal() + investedValue();
   function lakh(minor) {
     if (D.settings.hide && !reveal) return "Rs ••••";
     const n = minor / 100;
@@ -684,8 +693,9 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     const owe = debtTotals("owe");
 
     const hero = el("section", { class: "hero" },
-      el("div", { style: "position:relative;z-index:1" }, el("div", { class: "label" }, "Money I have"), el("div", { class: "big", "data-count": bal }, money(bal))),
-      el("div", { class: "hero-row", style: up ? null : "grid-template-columns:1fr" },
+      el("div", { style: "position:relative;z-index:1" }, el("div", { class: "label" }, "Money I have (spending)"), el("div", { class: "big", "data-count": bal }, money(bal))),
+      el("div", { class: "hero-row" },
+        el("div", { class: "hero-pill" }, el("div", { class: "label" }, "Saved"), el("div", { class: "v" }, money(savingAccTotal()))),
         el("div", { class: "hero-pill" }, el("div", { class: "label" }, "I owe"), el("div", { class: "v" }, totalsText(owe))),
         up ? el("div", { class: "hero-pill" }, el("div", { class: "label" }, "Coming soon"), el("div", { class: "v" }, money(up, undefined, "+"))) : null),
       up ? el("div", { class: "hero-note" }, `After upcoming money: ${money(bal + up)}`) : null);
@@ -698,8 +708,8 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
 
     // Accounts
     const accCard = el("section", { class: "card" },
-      el("div", { class: "card-head" }, el("h2", {}, "My accounts"), el("button", { class: "link", type: "button", onclick: () => go("more") }, "Set balances")),
-      el("div", { class: "list" }, D.accounts.map(a => {
+      el("div", { class: "card-head" }, el("h2", {}, "Spending money"), el("button", { class: "link", type: "button", onclick: () => go("more") }, "Set balances")),
+      el("div", { class: "list" }, D.accounts.filter(a => !a.saving).map(a => {
         const b = accBal(a.id);
         return el("div", { class: "acc" },
           el("div", { class: "dot", style: `background:${accColor(a)}`, "aria-hidden": "true" }, initials(a.name.replace(/\(.*\)/, ""))),
@@ -707,14 +717,6 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
           el("div", { class: "v" + (b < 0 ? " neg" : "") }, money(b)));
       })),
       el("button", { class: "btn soft", type: "button", onclick: () => openTransfer() }, "⇄ Move money between accounts"));
-
-    // Main goal strip
-    const gp = goalProgress(), gt = D.goal.target || 1;
-    const goalStrip = el("section", { class: "card" },
-      el("button", { class: "goalmini", type: "button", onclick: () => go("wealth"), style: "background:none;padding:0" },
-        el("div", {}, el("div", { class: "label" }, D.goal.name || "Main goal"), el("div", { style: "font-weight:700" }, `${lakh(gp)} of ${lakh(gt)}`)),
-        el("div", { class: "num", style: "font-weight:700;color:var(--in)" }, (gp / gt * 100).toFixed(gp / gt < 0.1 ? 2 : 1) + "%"),
-        el("div", { class: "bar" }, el("span", { style: `width:${Math.min(100, gp / gt * 100).toFixed(2)}%;min-width:4px` }))));
 
     // This month
     const budget = D.settings.budget || 0;
@@ -753,45 +755,30 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     const h = new Date().getHours();
     const hello = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Good night";
     const who = (D.settings.userName || "").trim();
-    return [topbar(D.settings.name, todayLine), el("div", { class: "greet-big" }, `${hello}${who ? ", " + who : ""} 👋`), backupBanner(), hero, dueRepeatsCard(), planHomeCard(), streakCard(), aiCard, accCard, goalStrip, srcCard, monthCard, recentCard].filter(Boolean);
+    return [topbar(D.settings.name, todayLine), el("div", { class: "greet-big" }, `${hello}${who ? ", " + who : ""} 👋`), backupBanner(), hero, dueRepeatsCard(), planHomeCard(), streakCard(), aiCard, accCard, savingsCard(), srcCard, monthCard, recentCard].filter(Boolean);
   }
 
   const INV_KINDS = ["Shares (NEPSE)", "Mutual fund", "SIP", "Fixed deposit", "Gold / Silver", "Crypto", "Business", "Other"];
 
   function viewWealth() {
-    const g = D.goal, gp = goalProgress(), gt = g.target || 1, pct = gp / gt * 100;
-    const toGo = Math.max(0, gt - gp);
-    let pace = "";
-    if (g.by && toGo > 0) {
-      const mths = monthsUntil(g.by);
-      pace = mths > 0 ? `Put aside about ${money(Math.ceil(toGo / mths / 100) * 100)} a month to reach it by ${dual(g.by)}` : `Target date ${dual(g.by)} has passed`;
-    }
-    const goal = el("section", { class: "goal" },
-      el("div", { class: "label" }, "Main goal"),
-      g.name && g.name !== "Main goal" ? el("div", { class: "gname" }, g.name) : null,
-      el("div", { class: "gbig" }, `${lakh(gp)} `, el("span", { style: "font-size:16px;opacity:.8" }, `of ${lakh(gt)}`)),
-      el("div", { class: "gbar" }, el("span", { style: `width:${Math.min(100, pct).toFixed(2)}%` })),
-      el("div", { class: "grow" }, el("span", {}, `${pct.toFixed(pct < 10 ? 2 : 1)}% done`), el("span", {}, toGo ? `${money(toGo)} to go` : "Goal reached!")),
-      pace ? el("div", { class: "grow" }, pace) : null,
-      el("div", { class: "grow" }, el("span", {}, g.countCash ? "Counts savings, investments and account balances" : "Counts your savings and investments")),
-      el("button", { type: "button", onclick: openGoal }, "Edit goal"));
-
     const owe = debtTotals("owe")[D.settings.currency] || 0;
     const owed = debtTotals("owed")[D.settings.currency] || 0;
     const bal = balance(), sv = savedTotal(), iv = investedValue();
-    const nwv = bal + sv + iv + owed - owe;
+    const sa = savingAccTotal();
+    const nwv = bal + sa + sv + iv + owed - owe;
     const nw = el("section", { class: "card" },
       el("div", {}, el("h2", {}, "Net worth"), el("div", { class: "small muted" }, "Everything you have minus what you owe")),
       el("div", { class: "nw" },
-        el("div", { class: "nw-row" }, el("span", {}, "Accounts & cash"), el("span", { class: "num" }, money(bal))),
-        el("div", { class: "nw-row" }, el("span", {}, "Savings"), el("span", { class: "num" }, money(sv))),
+        el("div", { class: "nw-row" }, el("span", {}, "Spending money"), el("span", { class: "num" }, money(bal))),
+        el("div", { class: "nw-row" }, el("span", {}, "Savings (Khalti + cash)"), el("span", { class: "num" }, money(sa))),
+        sv ? el("div", { class: "nw-row" }, el("span", {}, "Saving pots"), el("span", { class: "num" }, money(sv))) : null,
         el("div", { class: "nw-row" }, el("span", {}, "Investments"), el("span", { class: "num" }, money(iv))),
         owed ? el("div", { class: "nw-row" }, el("span", {}, "Owed to me"), el("span", { class: "num" }, money(owed))) : null,
         el("div", { class: "nw-row" }, el("span", {}, "I owe"), el("span", { class: "num", style: "color:var(--out)" }, money(-owe))),
         el("div", { class: "nw-row total" }, el("span", {}, "Net worth"), el("span", { class: "num", style: `color:${nwv < 0 ? "var(--out)" : "var(--in)"}` }, money(nwv)))));
 
     const sav = el("section", { class: "card" },
-      el("div", { class: "card-head" }, el("h2", {}, "Savings"), el("span", { class: "num small muted" }, money(sv))));
+      el("div", { class: "card-head" }, el("h2", {}, "Saving pots"), el("span", { class: "num small muted" }, money(sv))));
     D.savings.forEach(pot => {
       if (pot.challenge) { sav.append(challengeBlock(pot)); return; }
       const tgt = pot.target || 0;
@@ -826,7 +813,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     if (!D.investments.length) inv.append(el("div", { class: "empty" }, "Add shares, mutual funds, SIP, FD or gold to see how they grow."));
     inv.append(el("button", { class: "btn soft", type: "button", onclick: () => openInv() }, "+ New investment"));
 
-    return [topbar("Wealth", "Goal, savings and investments"), goal, paceCard(), nw, nwChartCard(), sav, inv];
+    return [topbar("Wealth", "Savings and investments"), savingsCard(), nw, nwChartCard(), sav, inv];
   }
 
   function gainText(diff, base) {
@@ -1379,26 +1366,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     return el("input", { class: "amount-in", id, type: "number", inputmode: "decimal", step: "0.01", min: "0", placeholder: "Rs 0", value: value != null && value !== "" ? value : "" });
   }
 
-  function openGoal() {
-    const g = D.goal;
-    const name = el("input", { id: "gName", maxlength: "40", value: g.name || "", placeholder: "e.g. Buy land, start business" });
-    const amt = amountField("gAmt", g.target ? g.target / 100 : "");
-    const by = el("input", { id: "gBy", type: "date", value: g.by || "" });
-    const cash = el("input", { id: "gCash", type: "checkbox", checked: !!g.countCash });
-    const form = el("form", { style: "display:grid;gap:12px", onsubmit: e => {
-      e.preventDefault();
-      const t = toMinor(amt.value);
-      if (!t || t <= 0) { toast("Enter your goal amount"); return; }
-      Object.assign(g, { name: name.value.trim() || "Main goal", target: t, by: by.value, countCash: cash.checked });
-      closeSheet(); commit("Goal saved");
-    } },
-      el("label", { class: "field" }, el("span", {}, "What is the goal?"), name),
-      el("label", { class: "field" }, el("span", {}, "Amount (30 lakh = 3000000)"), amt),
-      el("label", { class: "field" }, el("span", {}, "Reach it by (optional)"), by),
-      el("label", { class: "check", for: "gCash" }, cash, "Also count the money in my accounts"),
-      el("button", { class: "btn block", type: "submit" }, "Save goal"));
-    sheet(el("h2", {}, "Main goal"), form);
-  }
+
 
   function openPot(pot) {
     const name = el("input", { id: "pName", maxlength: "40", required: true, value: pot?.name || "", placeholder: "Emergency fund, laptop…" });
@@ -1499,7 +1467,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   const AI_STARTERS = [
     "Which debt should I pay first?",
     "How can I cut my bad-habit spending?",
-    "How do I reach my 30 lakh goal?",
+    "How much should I save each month?",
     "How should I start investing in Nepal?",
     "Make a money plan for this month",
     "Is my spending this week OK?"
@@ -1517,7 +1485,8 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   function aiSnapshotText() {
     const t = today();
     const lines = [`Today: ${bs(t, true)} (${t}).`];
-    lines.push("Accounts: " + D.accounts.map(a => `${a.name} ${money(accBal(a.id))}`).join("; ") + `. Total ${money(balance())}.`);
+    lines.push("Spending accounts: " + D.accounts.filter(a => !a.saving).map(a => `${a.name} ${money(accBal(a.id))}`).join("; ") + `. Spending money total ${money(balance())}.`);
+    lines.push("Savings accounts (money set aside for emergencies, investing and later): " + D.accounts.filter(a => a.saving).map(a => `${a.name} ${money(accBal(a.id))}`).join("; ") + `. Savings total ${money(savingAccTotal())}.`);
     const up = D.txns.filter(isUpcoming);
     if (up.length) lines.push("Expected soon: " + up.map(x => `${money(signed(x), undefined, "+")} on ${x.date} (${x.note || x.cat})`).join("; ") + ".");
     const owe = D.debts.filter(d => d.dir === "owe" && left(d) > 0);
@@ -1538,8 +1507,6 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     if (D.settings.budget) lines.push(`Monthly spending budget: ${money(D.settings.budget)}.`);
     lines.push(D.savings.length ? "Savings pots: " + D.savings.map(p => `${p.name} ${money(p.balance || 0)}${p.target ? " of " + money(p.target) : ""}`).join("; ") + "." : "No savings pots yet.");
     lines.push(D.investments.length ? "Investments: " + D.investments.map(i => `${i.name} (${i.kind}) put in ${money(i.invested)}, worth ${money(i.value)}`).join("; ") + "." : "No investments yet.");
-    const g = D.goal;
-    lines.push(`Main goal: ${g.name || "Main goal"}, target ${money(g.target)} (${lakh(g.target)}), progress ${money(goalProgress())}${g.by ? ", target date " + g.by : ", no target date"}.`);
     const nw = balance() + savedTotal() + investedValue() + (debtTotals("owed").NPR || 0) - (debtTotals("owe").NPR || 0);
     lines.push(`Net worth in rupees: ${money(nw)}.`);
     return lines.join("\n");
@@ -2266,7 +2233,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   }
 
   // ---------- Net worth history and goal pace ----------
-  function netWorth() { return balance() + savedTotal() + investedValue() + (debtTotals("owed")[D.settings.currency] || 0) - (debtTotals("owe")[D.settings.currency] || 0); }
+  function netWorth() { return balance() + savingAccTotal() + savedTotal() + investedValue() + (debtTotals("owed")[D.settings.currency] || 0) - (debtTotals("owe")[D.settings.currency] || 0); }
   function recordNw() {
     const v = netWorth(), t = today(), last = D.nw[D.nw.length - 1];
     if (last && last.d === t) { if (last.v === v) return false; last.v = v; }
@@ -2302,36 +2269,12 @@ For debts, explain the order you'd pay them and why (high interest like credit c
       el("div", { class: "insight" }, `${money(lastV)} now · ${lastV >= first ? "up" : "down"} ${money(Math.abs(lastV - first))} since ${niceDate(pts[0].d)}`));
     return card;
   }
-  function paceCard() {
-    // Average kept per month over the last 90 days (or since first use)
-    const t = today();
-    const start = [addDays(t, -89), D.settings.firstUse].sort().pop();
-    const days = Math.max(1, Math.round((Date.parse(t) - Date.parse(start)) / 864e5) + 1);
-    const tx = D.txns.filter(x => x.date >= start && x.date <= t);
-    const kept = tx.reduce((s, x) => s + (x.type === "in" ? x.amount : x.type === "out" ? -x.amount : 0), 0);
-    const perMonth = Math.round(kept / days * 30);
-    const owe = debtTotals("owe")[D.settings.currency] || 0;
-    const toGo = Math.max(0, D.goal.target - goalProgress());
-    if (!tx.length) return el("section", { class: "card" }, el("h2", {}, "Goal pace"), el("div", { class: "small muted" }, "Add what you receive and spend for a few weeks, and UdayFin will estimate when you reach your goal."));
-    let msg;
-    if (perMonth <= 0) msg = `Right now you spend more than you get (${money(perMonth)} a month). Cut bad-habit spending first. Every rupee you keep moves the goal closer.`;
-    else {
-      const months = Math.ceil((toGo + owe) / perMonth);
-      const yrs = months / 12;
-      msg = `You're keeping about ${money(perMonth)} a month. At this pace you'd clear your debts${owe ? ` (${money(owe)})` : ""} and reach ${lakh(D.goal.target)} in about ${yrs >= 1 ? yrs.toFixed(1) + " years" : months + " months"} (${bsMonthYear(addMonthsISO(t, months))}).`;
-    }
-    const need10 = Math.ceil((toGo + owe) / 120 / 100) * 100;
-    return el("section", { class: "card" }, el("h2", {}, "Goal pace"), el("div", { class: "insight" }, msg),
-      el("div", { class: "small muted" }, `To reach it in 10 years you'd need to keep about ${money(need10)} a month. Investments that grow help a lot over that time.`),
-      el("div", { class: "note" }, `Based on the last ${days} days.`));
-  }
+
 
   // ---------- Motivation ----------
   function milestones() {
-    const L = 1e5 * 100, target = D.goal.target || 0;
-    const steps = [0.25, 0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 75, 100].map(x => x * L).filter(v => v < target);
-    if (target) steps.push(target);
-    return steps;
+    const L = 1e5 * 100;
+    return [0.05, 0.1, 0.25, 0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 75, 100].map(x => x * L);
   }
   function checkMilestones(silent) {
     const g = D.goal, p = goalProgress();
@@ -2344,14 +2287,13 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   }
   function celebrate(m) {
     const root = $("#partyRoot");
-    const pct = Math.min(100, goalProgress() / (D.goal.target || 1) * 100);
-    const done = m >= D.goal.target;
+    const done = false;
     const cv = el("canvas", { "aria-hidden": "true" });
     root.replaceChildren(el("div", { class: "celebrate", role: "dialog", "aria-modal": "true", onclick: e => { if (e.target.classList.contains("celebrate")) root.replaceChildren(); } },
       cv,
       el("div", { class: "box" }, el("div", { class: "e", "aria-hidden": "true" }, done ? "🏆" : "🎉"),
-        el("h2", {}, done ? "You reached your main goal!" : `${lakh(m)} reached!`),
-        el("div", { class: "small muted" }, done ? `${lakh(D.goal.target)} saved and invested. Amazing work!` : `Your savings and investments passed ${lakh(m)}. That's ${pct.toFixed(1)}% of your ${lakh(D.goal.target)} goal.`),
+        el("h2", {}, `${lakh(m)} saved!`),
+        el("div", { class: "small muted" }, `Your savings and investments passed ${lakh(m)}. Keep it up! 🐷`),
         el("button", { class: "btn block", type: "button", onclick: () => root.replaceChildren() }, "Keep going"))));
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const ctx = cv.getContext("2d"), dpr = devicePixelRatio || 1;
@@ -2416,6 +2358,71 @@ For debts, explain the order you'd pay them and why (high interest like credit c
       missed.length > (thisDone ? 1 : 0) ? el("div", { class: "note" }, `Catch up: week ${missed.slice(0, 5).join(", ")}${missed.length > 5 ? "…" : ""}`) : null);
   }
 
+  // ---------- Savings accounts (Khalti, Cash savings) ----------
+  const PURPOSES = [["Emergency fund", "🚨"], ["Investment", "📈"], ["For later", "⏳"]];
+  function savingsCard() {
+    const sa = D.accounts.filter(a => a.saving);
+    if (!sa.length) return null;
+    return el("section", { class: "card" },
+      el("div", { class: "card-head" }, el("h2", {}, "🐷 My savings"), el("span", { class: "num", style: "font-weight:700;color:var(--in)" }, money(savingAccTotal()))),
+      el("div", { class: "small muted" }, "Money set aside for emergencies, investing and later. Not counted in your spending money."),
+      el("div", { class: "list" }, sa.map(a => {
+        const b = accBal(a.id);
+        return el("div", { class: "pot" },
+          el("div", { class: "acc", style: "border:0;padding:0" },
+            el("div", { class: "dot", style: `background:${accColor(a)}`, "aria-hidden": "true" }, a.id === "khalti" ? "💜" : a.id === "cashsave" ? "💵" : initials(a.name)),
+            el("div", {}, el("div", { class: "t" }, a.name), el("div", { class: "small muted" }, a.note || "Savings")),
+            el("div", { class: "v" + (b < 0 ? " neg" : "") }, money(b))),
+          el("div", { class: "btnrow" },
+            el("button", { class: "btn", type: "button", onclick: () => openSaveTo(a) }, "+ Save"),
+            el("button", { class: "btn soft", type: "button", disabled: !(b > 0), onclick: () => openUseFrom(a) }, "Use savings")));
+      })));
+  }
+  function spendSelect(id, value) {
+    const sp = D.accounts.filter(a => !a.saving);
+    const sel = el("select", { id }, sp.map(a => el("option", { value: a.id }, `${a.name} · ${money(accBal(a.id))}`)));
+    sel.value = sp.some(a => a.id === value) ? value : sp[0]?.id;
+    return sel;
+  }
+  function openSaveTo(a) {
+    let purpose = PURPOSES[0][0];
+    const amt = amountField("svAmt");
+    const from = spendSelect("svFrom", a.id === "cashsave" ? "cash" : D.settings.lastAcc);
+    const chips = el("div", { class: "chips" });
+    const draw = () => chips.replaceChildren(...PURPOSES.map(([p, i]) => el("button", { type: "button", "aria-pressed": p === purpose, onclick: () => { purpose = p; draw(); } }, `${i} ${p}`)));
+    draw();
+    const form = el("form", { style: "display:grid;gap:12px", onsubmit: e => {
+      e.preventDefault();
+      const v = toMinor(amt.value);
+      if (!v || v <= 0) { toast("Enter an amount"); return; }
+      D.txns.push({ id: uid(), type: "transfer", from: from.value, to: a.id, amount: v, note: "Saved · " + purpose, purpose, date: today(), at: Date.now() });
+      closeSheet(); commit(`Saved ${money(v)} in ${a.name} 🐷`);
+    } }, amt,
+      el("label", { class: "field" }, el("span", {}, "Take it from"), from),
+      el("div", { class: "field" }, el("span", {}, "Saving for"), chips),
+      el("button", { class: "btn block", type: "submit" }, `Save in ${a.name}`));
+    sheet(el("h2", {}, `Save in ${a.name}`), el("div", { class: "small muted" }, `In ${a.name} now: ${money(accBal(a.id))}`), form);
+    setTimeout(() => amt.focus(), 50);
+  }
+  function openUseFrom(a) {
+    const amt = amountField("useAmt");
+    const to = spendSelect("useTo", a.id === "cashsave" ? "cash" : D.settings.lastAcc);
+    const why = el("input", { id: "useWhy", maxlength: "60", placeholder: "Why? e.g. emergency, buying shares" });
+    const form = el("form", { style: "display:grid;gap:12px", onsubmit: e => {
+      e.preventDefault();
+      const v = toMinor(amt.value), have = accBal(a.id);
+      if (!v || v <= 0) { toast("Enter an amount"); return; }
+      if (v > have) { toast(`Only ${money(have)} in ${a.name}`); return; }
+      D.txns.push({ id: uid(), type: "transfer", from: a.id, to: to.value, amount: v, note: "From savings" + (why.value.trim() ? " · " + why.value.trim() : ""), date: today(), at: Date.now() });
+      closeSheet(); commit(`Moved ${money(v)} from ${a.name} to ${accName(to.value)}`);
+    } }, amt,
+      el("label", { class: "field" }, el("span", {}, "Move it to"), to),
+      why,
+      el("button", { class: "btn block", type: "submit" }, "Use savings"));
+    sheet(el("h2", {}, `Use ${a.name}`), el("div", { class: "small muted" }, `Available: ${money(accBal(a.id))}`), form);
+    setTimeout(() => amt.focus(), 50);
+  }
+
   // ---------- Clear old history (balances stay the same) ----------
   function clearHistory(scope) {
     const t = today();
@@ -2471,7 +2478,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
         el("p", {}, "Your money, your goals, all in one place. It works offline and your data stays on this phone.")),
       () => el("div", { class: "slide" }, el("div", { class: "art" }, "📊"),
         el("h2", {}, "Know where every rupee goes"),
-        el("div", { class: "feats" }, el("div", {}, "🟢🔴 Mark each spend as a Good spend or a Bad habit"), el("div", {}, "💳 A plan to clear your debts, with your debt-free date"), el("div", {}, "🎯 Track your Rs 30 lakh goal, savings and investments"))),
+        el("div", { class: "feats" }, el("div", {}, "🟢🔴 Mark each spend as a Good spend or a Bad habit"), el("div", {}, "💳 A plan to clear your debts, with your debt-free date"), el("div", {}, "🐷 Save in Khalti and cash savings for emergencies and investing"))),
       () => el("div", { class: "slide" }, Object.assign(el("div", { class: "art", style: "background:var(--card)" }), { innerHTML: BABE_SVG.replace('class="babe"', 'width="110" height="110"') }),
         el("h2", {}, "Meet Babe 💙"),
         el("p", {}, "Your money assistant. Ask by typing or talk by voice. She knows your numbers and helps you decide what to do next.")),
