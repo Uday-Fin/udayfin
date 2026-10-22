@@ -1216,7 +1216,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
         } }, "Save key"),
         el("button", { class: "btn soft", type: "button", disabled: !aiKey(), onclick: () => { try { localStorage.removeItem(AI_KEY); } catch {} toast("Key removed"); render(); } }, "Remove key")),
       el("div", { class: "note" }, "The key stays only on this phone. It is never put in backups. Keep it secret: anyone with it can spend your credit."));
-    return [topbar("More", "Settings and backup"), look, pinCard(), accs, settings, limitsCard(), repeatsCard(), aiSet, backup, danger];
+    return [topbar("More", "Settings and backup"), look, pinCard(), accs, settings, limitsCard(), repeatsCard(), aiSet, backup, clearHistoryCard(), danger];
   }
 
   function backupText() {
@@ -2414,6 +2414,49 @@ For debts, explain the order you'd pay them and why (high interest like credit c
         el("button", { class: "btn soft", type: "button", onclick: () => openSaveMove(pot, "take"), disabled: !(pot.balance > 0) }, "Take out"),
         el("button", { class: "link", type: "button", onclick: () => openPot(pot) }, "Edit")),
       missed.length > (thisDone ? 1 : 0) ? el("div", { class: "note" }, `Catch up: week ${missed.slice(0, 5).join(", ")}${missed.length > 5 ? "…" : ""}`) : null);
+  }
+
+  // ---------- Clear old history (balances stay the same) ----------
+  function clearHistory(scope) {
+    const t = today();
+    const cutoff = scope === "month" ? monthKey(t) + "-01" : scope === "today" ? t : null;
+    const gone = D.txns.filter(x => cutoff ? x.date < cutoff : true);
+    // Fold each removed entry into its account's starting amount so balances don't move
+    gone.forEach(x => {
+      if (isUpcoming(x)) return;
+      if (x.type === "transfer") {
+        const f = D.accounts.find(a => a.id === x.from), to = D.accounts.find(a => a.id === x.to);
+        if (f) f.opening = (f.opening || 0) - x.amount;
+        if (to) to.opening = (to.opening || 0) + x.amount;
+      } else {
+        const a = D.accounts.find(a => a.id === x.acc);
+        if (a) a.opening = (a.opening || 0) + signed(x);
+      }
+    });
+    const ids = new Set(gone.map(x => x.id));
+    D.txns = D.txns.filter(x => !ids.has(x.id));
+    // Old investment value updates and savings deposits go too; pot and investment totals stay
+    const keep = l => cutoff ? l.date >= cutoff : false;
+    D.savings.forEach(p => { if (p.log) p.log = p.log.filter(keep); });
+    D.investments.forEach(i => { if (i.log) i.log = i.log.filter(keep); });
+    D.debts.forEach(d => (d.payments || []).forEach(pm => { if (!keep(pm)) pm.txn = pm.txn || "cleared"; }));
+    if (!cutoff) D.nw = [];
+    return gone.length;
+  }
+  function clearHistoryCard() {
+    let scope = "month";
+    const sel = el("select", { id: "clearScope", "aria-label": "What to clear", onchange: e => { scope = e.target.value; } },
+      el("option", { value: "month" }, "Everything before this month"),
+      el("option", { value: "today" }, "Everything before today"),
+      el("option", { value: "all" }, "All entries"));
+    return el("section", { class: "card" },
+      el("h2", {}, "Clear old history"),
+      el("div", { class: "small muted" }, "Removes old spending, income and transfer entries. Your account balances, debts, savings and goal stay exactly the same. Save a backup first if you might want them later."),
+      sel,
+      el("button", { class: "btn danger", type: "button", onclick: e => arm(e.currentTarget, "Clear history", () => {
+        const n = clearHistory(scope);
+        commit(n ? `Cleared ${n} old ${n === 1 ? "entry" : "entries"}. Balances unchanged.` : "Nothing old to clear");
+      }) }, "Clear history"));
   }
 
   // ---------- Welcome (first open) ----------
