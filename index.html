@@ -2545,6 +2545,32 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   render();
   if (locked) showLock();
   else if (!D.settings.onboarded) showWelcome();
+  // Balance links: ?set=nabil:514.19,khalti:238 shows old → new and waits for Apply
+  try {
+    const raw = new URLSearchParams(location.search).get("set");
+    if (raw) {
+      history.replaceState(null, "", location.pathname);
+      const changes = raw.split(",").map(x => x.split(":")).map(([id, v]) => [D.accounts.find(a => a.id === id.trim().toLowerCase()), parseFloat(v)])
+        .filter(([a, v]) => a && isFinite(v) && v >= 0 && v < 1e9);
+      const open = () => {
+        if (!changes.length) { toast("That balance link didn't have any accounts I know"); return; }
+        sheet(el("h2", {}, "Update balances?"),
+          el("div", { class: "small muted" }, "This link sets these accounts to the amounts below. Nothing changes unless you tap Apply."),
+          el("div", { class: "list" }, changes.map(([a, v]) => el("div", { class: "item" },
+            el("div", { class: "dot ico", style: `background:${accColor(a)};color:#fff`, "aria-hidden": "true" }, initials(a.name.replace(/\(.*\)/, ""))),
+            el("div", {}, el("div", { class: "t" }, a.name), el("div", { class: "s" }, `Now ${real(() => money(accBal(a.id)))}`)),
+            el("div", { class: "amt" }, real(() => money(Math.round(v * 100))))))),
+          el("div", { class: "two" },
+            el("button", { class: "btn", type: "button", onclick: () => {
+              changes.forEach(([a, v]) => { a.opening = (a.opening || 0) + (Math.round(v * 100) - accBal(a.id)); });
+              closeSheet(); commit("Balances updated");
+            } }, "Apply"),
+            el("button", { class: "btn soft", type: "button", onclick: closeSheet }, "Cancel")));
+      };
+      const iv = setInterval(() => { if (!locked && D.settings.onboarded) { clearInterval(iv); open(); } }, 300);
+    }
+  } catch {}
+
   // Home-screen shortcuts open straight into the add sheet
   try {
     const want = new URLSearchParams(location.search).get("add");
