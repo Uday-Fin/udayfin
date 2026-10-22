@@ -1,5 +1,5 @@
 // Keeps UdayFin working offline: cache the app shell, serve it when there's no network.
-const CACHE = "udayfin-v15";
+const CACHE = "udayfin-v16";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "logo-96.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
