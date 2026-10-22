@@ -33,10 +33,10 @@
   --hero-a: #061a3d;
   --hero-b: #1554c9;
   --hero-c: #20c98a;
-  --hi: #c8372d;
-  --lo: #2fa36b;
-  --hi-soft: #fbe6e4;
-  --lo-soft: #def5ea;
+  --hi: #2fa36b;
+  --lo: #c8372d;
+  --hi-soft: #def5ea;
+  --lo-soft: #fbe6e4;
   --display: "Sora", "Segoe UI", system-ui, sans-serif;
   --body: "Manrope", "Segoe UI", system-ui, sans-serif;
 }
@@ -45,14 +45,14 @@
     --bg: #051430; --card: #0c2148; --ink: #e8efff; --muted: #94a6c8; --line: #1b3364;
     --accent: #5b9bff; --accent-ink: #051430; --accent-soft: #14305f;
     --in: #4be3a2; --in-soft: #0c3a35; --out: #ff8a7f; --out-soft: #3d1c2a;
-    --warn: #f3b85c; --warn-soft: #3a2c14; --hero-a: #0a2a66; --hero-b: #1a5fe0; --hero-c: #1fbf86; --hi: #e8564a; --lo: #2e9e68; --hi-soft: #3d1c2a; --lo-soft: #0c3a35; color-scheme: dark;
+    --warn: #f3b85c; --warn-soft: #3a2c14; --hero-a: #0a2a66; --hero-b: #1a5fe0; --hero-c: #1fbf86; --hi: #2e9e68; --lo: #e8564a; --hi-soft: #0c3a35; --lo-soft: #3d1c2a; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #051430; --card: #0c2148; --ink: #e8efff; --muted: #94a6c8; --line: #1b3364;
   --accent: #5b9bff; --accent-ink: #051430; --accent-soft: #14305f;
   --in: #4be3a2; --in-soft: #0c3a35; --out: #ff8a7f; --out-soft: #3d1c2a;
-  --warn: #f3b85c; --warn-soft: #3a2c14; --hero-a: #0a2a66; --hero-b: #1a5fe0; --hero-c: #1fbf86; --hi: #e8564a; --lo: #2e9e68; --hi-soft: #3d1c2a; --lo-soft: #0c3a35; color-scheme: dark;
+  --warn: #f3b85c; --warn-soft: #3a2c14; --hero-a: #0a2a66; --hero-b: #1a5fe0; --hero-c: #1fbf86; --hi: #2e9e68; --lo: #e8564a; --hi-soft: #0c3a35; --lo-soft: #3d1c2a; color-scheme: dark;
 }
 /* Logo themes: Ocean (blue to green, default), Mint (green-led), Royal (deep blue) */
 :root[data-accent="mint"] { --accent: #0b8a5e; --accent-soft: #dcf3e8; --hero-a: #032a1f; --hero-b: #0b7a55; --hero-c: #2f8cff; }
@@ -243,7 +243,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
 .typeseg button[data-t="in"][aria-pressed="true"] { background: var(--in-soft); color: var(--in); border-color: var(--in); }
 .amount-in { font-family: var(--display); font-size: 30px; font-weight: 700; text-align: center; padding: 14px; }
 
-/* High ON / Low ON */
+/* Good spend / Bad habit */
 .priseg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .priseg button { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 10px; text-align: left; display: grid; gap: 2px; }
 .priseg button b { font-size: 14px; }
@@ -442,7 +442,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
 <script>
 (() => {
   const KEY = "udayfin.v1";
-  const CATS = ["Food", "Transport", "Mobile/Data", "College", "Shopping", "Friends", "Other"];
+  const CATS = ["Food", "Transport", "Mobile/Data", "College", "Shopping", "Friends", "Smoking & drinks", "Other"];
   const INCATS = ["From father", "Commission", "Extra work", "Gift", "Other"];
   const $ = s => document.querySelector(s);
   const el = (tag, attrs = {}, ...kids) => {
@@ -466,15 +466,13 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     return {
       v: 1,
       settings: { name: "UdayFin", currency: "NPR", opening: 0 },
+      // Balances as of 22 Oct 2026 (paisa)
+      accounts: DEFAULT_ACCOUNTS.map(a => ({ ...a, opening: { cash: 311000, khalti: 23800, esewa: 133100, nabil: 51419 }[a.id] || 0 })),
       txns: [],
       debts: [
-        { id: uid(), dir: "owe", name: "Siddhartha Bank", note: "Credit card", currency: "NPR", original: 2409000, due: "", payments: [] },
         { id: uid(), dir: "owe", name: "Parents", note: "", currency: "NPR", original: 2500000, due: "", payments: [] },
         { id: uid(), dir: "owe", name: "Others", note: "", currency: "NPR", original: 1500000, due: "", payments: [] },
-        { id: uid(), dir: "owe", name: "Office", note: "", currency: "NPR", original: 1000000, due: "", payments: [] },
-        { id: uid(), dir: "owe", name: "Rakesh vinaju", note: "", currency: "NPR", original: 1000000, due: "", payments: [] },
-        { id: uid(), dir: "owe", name: "Ravi dai", note: "", currency: "NPR", original: 150000, due: "", payments: [] },
-        { id: uid(), dir: "owe", name: "Rajesh", note: "In US dollars", currency: "USD", original: 2500, due: "", payments: [] }
+        { id: uid(), dir: "owe", name: "Rakesh vinaju", note: "", currency: "NPR", original: 1000000, due: "", payments: [] }
       ]
     };
   }
@@ -487,7 +485,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   ];
   const ACC_COLORS = ["#0f766e", "#9a3412", "#6d28d9", "#be185d", "#1d4ed8", "#4d7c0f"];
   const THEMES = [["ocean", "Ocean", "linear-gradient(135deg,#061a3d,#1554c9 60%,#20c98a)"], ["mint", "Mint", "linear-gradient(135deg,#032a1f,#0b7a55 60%,#2f8cff)"], ["royal", "Royal", "linear-gradient(135deg,#050f33,#1a3fbf 60%,#4ad6a0)"]];
-  const ICONS = { "Food": "🍜", "Transport": "🚌", "Mobile/Data": "📱", "College": "🎓", "Shopping": "🛍️", "Friends": "🎉", "Other": "📦",
+  const ICONS = { "Food": "🍜", "Transport": "🚌", "Mobile/Data": "📱", "College": "🎓", "Shopping": "🛍️", "Friends": "🎉", "Smoking & drinks": "🚬", "Other": "📦",
     "From father": "👨", "Commission": "💼", "Extra work": "🛠️", "Gift": "🎁", "Debt payment": "💳", "Got back": "🤝", "Savings": "🐷", "Investment": "📈" };
   const iconFor = t => t.type === "in" && t.cat === "Other" ? "💰" : ICONS[t.cat] || (t.type === "in" ? "💰" : "📦");
   // Fill in sections added after a phone first saved its data
@@ -668,7 +666,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
       el("div", { class: "ico " + cls + (mv && t.type === "transfer" ? "" : " cat"), "aria-hidden": "true" }, t.type === "transfer" ? "⇄" : iconFor(t)),
       el("div", {},
         el("div", { class: "t" }, t.type === "transfer" ? `${accName(t.from)} → ${accName(t.to)}` : t.note || t.cat,
-          t.type === "out" && t.pri ? el("span", { class: "pchip " + t.pri }, t.pri === "high" ? "HIGH ON" : "LOW ON") : null),
+          t.type === "out" && t.pri ? el("span", { class: "pchip " + t.pri }, t.pri === "high" ? "GOOD" : "BAD HABIT") : null),
         el("div", { class: "s" }, (t.type === "transfer" ? [t.note || "Transfer", dual(t.date)] : [t.cat, accName(t.acc), dual(t.date)]).filter(Boolean).join(" · "), up ? " · " : "", up ? el("span", { class: "chip" }, "Upcoming") : null)),
       el("div", {},
         el("div", { class: "amt " + cls }, t.type === "transfer" ? money(t.amount) : money(signed(t), undefined, "+")),
@@ -896,25 +894,25 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     const dayCard = el("section", { class: "card" },
       el("div", { class: "card-head" }, el("h2", {}, "Spending by day"), el("span", { class: "small muted" }, "Tap a day")),
       dailyChart(W.days.map((d, i) => ({ ...d, label: DAYS[i], title: `${DAYS[i]} · ${dual(d.date)}`, current: d.date === today() }))),
-      el("div", { class: "legend" }, el("span", {}, el("i", { style: "background:var(--hi)" }), "High ON"), el("span", {}, el("i", { style: "background:var(--lo);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 2px,transparent 2px 5px)" }), "Low ON"),
+      el("div", { class: "legend" }, el("span", {}, el("i", { style: "background:var(--hi)" }), "Good spend"), el("span", {}, el("i", { style: "background:var(--lo);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 2px,transparent 2px 5px)" }), "Bad habit"),
         W.none ? el("span", {}, el("i", { style: "background:var(--muted)" }), "Not marked") : null));
 
     // High vs Low
     const tot = W.high + W.low + W.none || 1;
     const lowPct = W.low / tot * 100, highPct = W.high / tot * 100;
     const priCard = el("section", { class: "card" },
-      el("h2", {}, "High ON vs Low ON"),
-      el("div", { class: "split", role: "img", "aria-label": `High ON ${highPct.toFixed(0)} percent, Low ON ${lowPct.toFixed(0)} percent` },
+      el("h2", {}, "Good spend vs Bad habit"),
+      el("div", { class: "split", role: "img", "aria-label": `Good spend ${highPct.toFixed(0)} percent, Bad habit ${lowPct.toFixed(0)} percent` },
         W.high ? el("div", { style: `flex:${W.high};background:var(--hi)` }) : null,
         W.low ? el("div", { style: `flex:${W.low};background:var(--lo);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.4) 0 2px,transparent 2px 6px)` }) : null,
         W.none ? el("div", { style: `flex:${W.none};background:var(--line)` }) : null,
         !W.spent ? el("div", { style: "flex:1;background:var(--line)" }) : null),
       el("div", { class: "splitlabels" },
-        el("div", {}, el("span", { class: "label", style: "color:var(--hi)" }, "High ON · needed"), el("span", { class: "v" }, money(W.high)), el("span", { class: "small muted" }, W.spent ? `${highPct.toFixed(0)}% of spending` : "—")),
-        el("div", {}, el("span", { class: "label", style: "color:var(--lo)" }, "Low ON · could skip"), el("span", { class: "v" }, money(W.low)), el("span", { class: "small muted" }, W.spent ? `${lowPct.toFixed(0)}% of spending` : "—"))),
-      el("div", { class: "insight" }, !W.spent ? "Mark each spend as High ON or Low ON to see where you can cut."
-        : W.low === 0 ? "No Low ON spending this week. Everything was needed."
-        : `If you skip the Low ON spends, you keep ${money(W.low)} a week. That's about ${lakh(W.low * 52)} a year towards your main goal.`));
+        el("div", {}, el("span", { class: "label", style: "color:var(--hi)" }, "Good spend · normal needs"), el("span", { class: "v" }, money(W.high)), el("span", { class: "small muted" }, W.spent ? `${highPct.toFixed(0)}% of spending` : "—")),
+        el("div", {}, el("span", { class: "label", style: "color:var(--lo)" }, "Bad habit · cut these"), el("span", { class: "v" }, money(W.low)), el("span", { class: "small muted" }, W.spent ? `${lowPct.toFixed(0)}% of spending` : "—"))),
+      el("div", { class: "insight" }, !W.spent ? "Mark each spend as Good spend or Bad habit to see where you can cut."
+        : W.low === 0 ? "No Bad habit spending this week. Everything was needed."
+        : `If you skip the Bad habit spends, you keep ${money(W.low)} a week. That's about ${lakh(W.low * 52)} a year towards your main goal.`));
 
     // Categories
     const byCat = {};
@@ -972,7 +970,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     days.forEach((d, i) => {
       const x = padL + i * bw + bw * 0.22, w = bw * 0.56;
       let base = d.none + d.low + d.high;
-      // Stack from the baseline: High ON at the bottom, then Low ON, then unmarked; 2px gaps between parts
+      // Stack from the baseline: Good spend at the bottom, then Bad habit, then unmarked; 2px gaps between parts
       const parts = [["high", d.high, "var(--hi)"], ["low", d.low, "url(#loTex)"], ["none", d.none, "var(--muted)"]];
       let cur = 0;
       const visible = parts.filter(p => p[1] > 0);
@@ -992,8 +990,8 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
       shows[i] = () => {
         sel.setAttribute("x", padL + i * bw + 2); sel.setAttribute("visibility", "visible");
         detail.replaceChildren(...[el("b", {}, d.title),
-          el("div", { class: "rowend" }, el("span", { style: "color:var(--hi);font-weight:700" }, "High ON"), el("span", {}, money(d.high))),
-          el("div", { class: "rowend" }, el("span", { style: "color:var(--lo);font-weight:700" }, "Low ON"), el("span", {}, money(d.low))),
+          el("div", { class: "rowend" }, el("span", { style: "color:var(--hi);font-weight:700" }, "Good spend"), el("span", {}, money(d.high))),
+          el("div", { class: "rowend" }, el("span", { style: "color:var(--lo);font-weight:700" }, "Bad habit"), el("span", {}, money(d.low))),
           d.none ? el("div", { class: "rowend" }, el("span", {}, "Not marked"), el("span", {}, money(d.none))) : null,
           el("div", { class: "rowend", style: "font-weight:700;border-top:1px solid var(--line);padding-top:4px" }, el("span", {}, "Total spent"), el("span", {}, money(base)))].filter(Boolean));
       };
@@ -1278,11 +1276,11 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
     const chips = el("div", { class: "chips" });
     const drawChips = () => {
       chips.innerHTML = "";
-      (type === "out" ? CATS : INCATS).forEach(c => chips.append(el("button", { type: "button", "aria-pressed": c === cat, onclick: () => { cat = c; drawChips(); } }, `${type === "in" && c === "Other" ? "💰" : ICONS[c] || ""} ${c}`)));
+      (type === "out" ? CATS : INCATS).forEach(c => chips.append(el("button", { type: "button", "aria-pressed": c === cat, onclick: () => { cat = c; if (type === "out") setPri(c === "Smoking & drinks" ? "low" : "high"); drawChips(); } }, `${type === "in" && c === "Other" ? "💰" : ICONS[c] || ""} ${c}`)));
     };
     let pri = pre.pri || "high";
-    const pHigh = el("button", { type: "button", "data-p": "high", "aria-pressed": pri === "high", onclick: () => setPri("high") }, el("b", {}, "High ON"), el("span", {}, "Needed: food, college, rent, bills"));
-    const pLow = el("button", { type: "button", "data-p": "low", "aria-pressed": pri === "low", onclick: () => setPri("low") }, el("b", {}, "Low ON"), el("span", {}, "Could skip: outings, extras, wants"));
+    const pHigh = el("button", { type: "button", "data-p": "high", "aria-pressed": pri === "high", onclick: () => setPri("high") }, el("b", {}, "Good spend"), el("span", {}, "Normal needs: food, transport, college, bills"));
+    const pLow = el("button", { type: "button", "data-p": "low", "aria-pressed": pri === "low", onclick: () => setPri("low") }, el("b", {}, "Bad habit"), el("span", {}, "Smoking, drinking, gambling and the like"));
     function setPri(v) { pri = v; pHigh.setAttribute("aria-pressed", v === "high"); pLow.setAttribute("aria-pressed", v === "low"); }
     const priField = el("div", { class: "field" }, el("span", {}, "How important?"), el("div", { class: "priseg", role: "group", "aria-label": "Priority" }, pHigh, pLow));
     const tOut = el("button", { type: "button", "data-t": "out", "aria-pressed": type === "out", onclick: () => setType("out") }, "Spent");
@@ -1500,7 +1498,7 @@ textarea { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, 
   const AI_MODEL = "claude-opus-5-5";
   const AI_STARTERS = [
     "Which debt should I pay first?",
-    "Where can I cut my Low ON spending?",
+    "How can I cut my bad-habit spending?",
     "How do I reach my 30 lakh goal?",
     "How should I start investing in Nepal?",
     "Make a money plan for this month",
@@ -1532,11 +1530,11 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     const ins = recent.filter(x => x.type === "in"), outs = recent.filter(x => x.type === "out");
     lines.push(`Last 30 days received: ${money(ins.reduce((a, x) => a + x.amount, 0))}${ins.length ? " (" + sumBy(ins, "cat") + ")" : ""}.`);
     const hi = outs.filter(x => x.pri === "high").reduce((a, x) => a + x.amount, 0), lo = outs.filter(x => x.pri === "low").reduce((a, x) => a + x.amount, 0);
-    lines.push(`Last 30 days spent: ${money(outs.reduce((a, x) => a + x.amount, 0))}; High ON (needed) ${money(hi)}, Low ON (could skip) ${money(lo)}${outs.length ? "; by category: " + sumBy(outs, "cat") : ""}.`);
-    const weeks = [0, 1, 2, 3].map(i => { const w = weekData(addDays(weekStart(t), -7 * i)); return `${w.start}: spent ${money(w.spent)} (Low ON ${money(w.low)}), received ${money(w.got)}`; });
+    lines.push(`Last 30 days spent: ${money(outs.reduce((a, x) => a + x.amount, 0))}; good spending on normal needs ${money(hi)}, bad-habit spending like smoking or drinking ${money(lo)}${outs.length ? "; by category: " + sumBy(outs, "cat") : ""}.`);
+    const weeks = [0, 1, 2, 3].map(i => { const w = weekData(addDays(weekStart(t), -7 * i)); return `${w.start}: spent ${money(w.spent)} (Bad habit ${money(w.low)}), received ${money(w.got)}`; });
     lines.push("Weekly (newest first): " + weeks.join("; ") + ".");
     const big = [...outs].sort((a, b) => b.amount - a.amount).slice(0, 5);
-    if (big.length) lines.push("Biggest recent spends: " + big.map(x => `${x.note || x.cat} ${money(x.amount)} (${x.pri === "low" ? "Low ON" : x.pri === "high" ? "High ON" : "unmarked"}, ${x.date})`).join("; ") + ".");
+    if (big.length) lines.push("Biggest recent spends: " + big.map(x => `${x.note || x.cat} ${money(x.amount)} (${x.pri === "low" ? "Bad habit" : x.pri === "high" ? "Good spend" : "unmarked"}, ${x.date})`).join("; ") + ".");
     if (D.settings.budget) lines.push(`Monthly spending budget: ${money(D.settings.budget)}.`);
     lines.push(D.savings.length ? "Savings pots: " + D.savings.map(p => `${p.name} ${money(p.balance || 0)}${p.target ? " of " + money(p.target) : ""}`).join("; ") + "." : "No savings pots yet.");
     lines.push(D.investments.length ? "Investments: " + D.investments.map(i => `${i.name} (${i.kind}) put in ${money(i.invested)}, worth ${money(i.value)}`).join("; ") + "." : "No investments yet.");
@@ -1692,13 +1690,15 @@ For debts, explain the order you'd pay them and why (high interest like credit c
   const normDigits = t => t.replace(/[०-९]/g, c => DEV[c]);
   const ACC_WORDS = [["khalti", /khalti|खल्ती/i], ["esewa", /e-?sewa|इसेवा/i], ["nabil", /nabil|नबिल/i], ["siddhartha", /siddhartha|siddharth|\bsbl\b|सिद्धार्थ/i], ["cash", /\bcash\b|wallet|nagad|नगद|pocket/i]];
   const CAT_WORDS = [
+    ["Smoking & drinks", /smok|cigar|churot|चुरोट|beer|alcohol|daru|दारु|raksi|रक्सी|wine|whisk|vodka|rum\b|hookah|hukka|vape|gutkha|tobacco|surti|khaini|pan masala/i],
     ["Food", /momo|food|khana|खाना|lunch|dinner|breakfast|tea|chiya|chiya|coffee|snack|chowmein|pizza|burger|restaurant|canteen|grocer|milk|fruit|samosa|sel ?roti|bhat.?bhateni|salesberry|big ?mart|supermarket|mart\b/i],
     ["Transport", /bus|taxi|pathao|indrive|tootle|fuel|petrol|diesel|bike|micro|tempo|ride|parking|travel/i],
     ["Mobile/Data", /recharge|top ?up|topup|data|ntc|ncell|internet|wifi|worldlink|vianet|mobile/i],
     ["College", /college|fee|fees|book|exam|tuition|notes|stationery|pen|copy|class|course/i],
     ["Shopping", /cloth|shirt|pant|shoe|shopping|daraz|dress|jacket|watch|bag/i],
     ["Friends", /friend|party|outing|movie|treat|birthday|picnic|gift|hangout|trip|game/i]];
-  const LOW_WORDS = /party|movie|outing|treat|snack|momo|pizza|burger|coffee|game|shopping|daraz|cloth|shoe|trip|picnic/i;
+  // Bad habits: these spends are marked "Bad habit" and filed under Smoking & drinks
+  const LOW_WORDS = /smok|cigar|churot|चुरोट|beer|alcohol|drink|daru|दारु|raksi|रक्सी|wine|whisk|vodka|rum\b|hookah|hukka|vape|gutkha|tobacco|surti|khaini|pan masala|gambl|betting|\bbet\b|casino|tash|teen ?patti|lottery/i;
   const IN_WORDS = /\b(got|get|received|receive|earned|earn|gave me|give me|sent me|credited|deposited|income|salary|commission|pocket money)\b|आयो|पाएँ|पाए/i;
   function parseAmount(t) {
     t = normDigits(t).replace(/(\d),(?=\d)/g, "$1");
@@ -1729,7 +1729,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     const cat = findCat(t, type);
     const date = /yesterday|hijo|हिजो/i.test(t) ? addDays(today(), -1) : today();
     const note = (t.match(/\b(?:on|for)\s+([a-z][a-z\s]{1,30}?)(?:\s+(?:from|with|using|by|in|via)\b|$)/i)?.[1] || "").trim();
-    return { kind: "entry", type, amount, cat, acc: findAccount(t), pri: type === "out" ? (LOW_WORDS.test(t) || cat === "Friends" || cat === "Shopping" ? "low" : "high") : undefined, date, note: note ? note[0].toUpperCase() + note.slice(1) : "" };
+    return { kind: "entry", type, amount, cat, acc: findAccount(t), pri: type === "out" ? (LOW_WORDS.test(t) || cat === "Smoking & drinks" ? "low" : "high") : undefined, date, note: note ? note[0].toUpperCase() + note.slice(1) : "" };
   }
   // Bank and wallet messages: debited/credited, amount, account, date, available balance
   function parseSms(raw) {
@@ -1756,7 +1756,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     const remark = (t.match(/(?:remarks?|rmk|purpose)\s*[:\-]?\s*([^.,]{2,40})/i)?.[1] || "").trim();
     const note = remark || who;
     const cat = findCat(note + " " + t, type);
-    return { kind: "entry", type, amount, acc, date, cat: type === "in" ? (cat === "Other" ? "Other" : cat) : cat, pri: type === "out" ? (LOW_WORDS.test(note) || cat === "Friends" || cat === "Shopping" ? "low" : "high") : undefined,
+    return { kind: "entry", type, amount, acc, date, cat: type === "in" ? (cat === "Other" ? "Other" : cat) : cat, pri: type === "out" ? (LOW_WORDS.test(note) || cat === "Smoking & drinks" ? "low" : "high") : undefined,
       note: note ? note.slice(0, 60) : "", syncBal: bal && acc ? { acc, bal: Math.round(parseFloat(bal[1].replace(/,/g, "")) * 100) } : null };
   }
 
@@ -2220,7 +2220,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
       el("div", { class: "kpi" }, el("div", { class: "label" }, "Kept"), el("div", { class: "v", style: `color:${kept < 0 ? "var(--out)" : "var(--in)"}` }, money(kept, undefined, "+")),
         el("div", { class: "small muted" }, M.got ? `${Math.round(kept / M.got * 100)}% of what came in` : "")),
       el("div", { class: "kpi" }, el("div", { class: "label" }, "Per day"), el("div", { class: "v" }, money(Math.round(M.spent / Math.max(1, days))))),
-      el("div", { class: "kpi" }, el("div", { class: "label" }, "Low ON"), el("div", { class: "v", style: "color:var(--lo)" }, money(M.low)), el("div", { class: "small muted" }, M.spent ? `${Math.round(M.low / M.spent * 100)}% of spending` : "")));
+      el("div", { class: "kpi" }, el("div", { class: "label" }, "Bad habit"), el("div", { class: "v", style: "color:var(--lo)" }, money(M.low)), el("div", { class: "small muted" }, M.spent ? `${Math.round(M.low / M.spent * 100)}% of spending` : "")));
     // Categories with change vs the month before
     const by = (arr) => { const o = {}; arr.forEach(t => o[t.cat] = (o[t.cat] || 0) + t.amount); return o; };
     const cur = by(M.out), prev = by(P.out);
@@ -2250,7 +2250,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     const chartCard = el("section", { class: "card" },
       el("div", { class: "card-head" }, el("h2", {}, "Spending by month"), el("span", { class: "small muted" }, "Tap a month")),
       dailyChart(ms.map(m => ({ high: m.high, low: m.low, none: m.none, label: short(m.k).slice(0, 3), title: `${monthLabel(m.k)} · ${monthBS(m.k)}`, current: m.k === monthKey(today()) }))),
-      el("div", { class: "legend" }, el("span", {}, el("i", { style: "background:var(--hi)" }), "High ON"), el("span", {}, el("i", { style: "background:var(--lo);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 2px,transparent 2px 5px)" }), "Low ON"), el("span", {}, el("i", { style: "background:var(--muted)" }), "Not marked")));
+      el("div", { class: "legend" }, el("span", {}, el("i", { style: "background:var(--hi)" }), "Good spend"), el("span", {}, el("i", { style: "background:var(--lo);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 2px,transparent 2px 5px)" }), "Bad habit"), el("span", {}, el("i", { style: "background:var(--muted)" }), "Not marked")));
     const table = el("section", { class: "card" }, el("h2", {}, "Month by month"),
       el("div", { style: "overflow-x:auto" }, el("table", { class: "ytable" },
         el("thead", {}, el("tr", {}, el("th", {}, "Month"), el("th", { class: "r" }, "In"), el("th", { class: "r" }, "Spent"), el("th", { class: "r" }, "Kept"))),
@@ -2260,7 +2260,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
       el("div", { class: "kpi wide" }, el("div", { class: "label" }, "Last 12 months"), el("div", { class: "v" }, money(got - spent, undefined, "+")), el("div", { class: "d" }, `Kept from ${money(got)} received · ${money(spent)} spent`)),
       el("div", { class: "kpi" }, el("div", { class: "label" }, "Best month"), el("div", { class: "v", style: "font-size:16px" }, best ? monthLabel(best.k) : "—"), el("div", { class: "small muted" }, best ? `kept ${money(best.got - best.spent)}` : "")),
       el("div", { class: "kpi" }, el("div", { class: "label" }, "Spent most"), el("div", { class: "v", style: "font-size:16px" }, worst ? monthLabel(worst.k) : "—"), el("div", { class: "small muted" }, worst ? money(worst.spent) : "")),
-      el("div", { class: "kpi" }, el("div", { class: "label" }, "Low ON total"), el("div", { class: "v", style: "color:var(--lo)" }, money(low))),
+      el("div", { class: "kpi" }, el("div", { class: "label" }, "Bad habit total"), el("div", { class: "v", style: "color:var(--lo)" }, money(low))),
       el("div", { class: "kpi" }, el("div", { class: "label" }, "Debt paid"), el("div", { class: "v" }, money(D.debts.reduce((s, d) => s + (d.payments || []).filter(p => p.date >= ks[0] + "-01").reduce((a, p) => a + (d.currency === D.settings.currency ? p.amount : 0), 0), 0)))));
     return [topbar("Summary", "Your year"), reportTabs(), kpis, chartCard, table];
   }
@@ -2314,7 +2314,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     const toGo = Math.max(0, D.goal.target - goalProgress());
     if (!tx.length) return el("section", { class: "card" }, el("h2", {}, "Goal pace"), el("div", { class: "small muted" }, "Add what you receive and spend for a few weeks, and UdayFin will estimate when you reach your goal."));
     let msg;
-    if (perMonth <= 0) msg = `Right now you spend more than you get (${money(perMonth)} a month). Cut Low ON spends first. Every rupee you keep moves the goal closer.`;
+    if (perMonth <= 0) msg = `Right now you spend more than you get (${money(perMonth)} a month). Cut bad-habit spending first. Every rupee you keep moves the goal closer.`;
     else {
       const months = Math.ceil((toGo + owe) / perMonth);
       const yrs = months / 12;
@@ -2367,7 +2367,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     })();
   }
 
-  // Days in a row with no Low ON spending
+  // Days in a row with no bad-habit spending
   function streaks() {
     const lowDays = new Set(D.txns.filter(t => t.type === "out" && t.pri === "low").map(t => t.date));
     const first = D.txns.filter(t => t.type === "out").map(t => t.date).sort()[0];
@@ -2382,7 +2382,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
     if (!st) return null;
     return el("section", { class: "card streak" },
       el("div", { class: "flame", "aria-hidden": "true" }, st.cur ? "🔥" : "💤"),
-      el("div", {}, el("div", { style: "font-weight:700" }, st.cur ? `${st.cur} ${st.cur === 1 ? "day" : "days"} with no Low ON spending` : "Streak reset today. Start again tomorrow!"),
+      el("div", {}, el("div", { style: "font-weight:700" }, st.cur ? `${st.cur} ${st.cur === 1 ? "day" : "days"} with no bad-habit spending` : "Streak reset today. Start again tomorrow!"),
         el("div", { class: "small muted" }, `Best: ${st.best} ${st.best === 1 ? "day" : "days"}`)));
   }
 
@@ -2471,7 +2471,7 @@ For debts, explain the order you'd pay them and why (high interest like credit c
         el("p", {}, "Your money, your goals, all in one place. It works offline and your data stays on this phone.")),
       () => el("div", { class: "slide" }, el("div", { class: "art" }, "📊"),
         el("h2", {}, "Know where every rupee goes"),
-        el("div", { class: "feats" }, el("div", {}, "🔴🟢 Mark each spend High ON or Low ON"), el("div", {}, "💳 A plan to clear your debts, with your debt-free date"), el("div", {}, "🎯 Track your Rs 30 lakh goal, savings and investments"))),
+        el("div", { class: "feats" }, el("div", {}, "🟢🔴 Mark each spend as a Good spend or a Bad habit"), el("div", {}, "💳 A plan to clear your debts, with your debt-free date"), el("div", {}, "🎯 Track your Rs 30 lakh goal, savings and investments"))),
       () => el("div", { class: "slide" }, Object.assign(el("div", { class: "art", style: "background:var(--card)" }), { innerHTML: BABE_SVG.replace('class="babe"', 'width="110" height="110"') }),
         el("h2", {}, "Meet Babe 💙"),
         el("p", {}, "Your money assistant. Ask by typing or talk by voice. She knows your numbers and helps you decide what to do next.")),
